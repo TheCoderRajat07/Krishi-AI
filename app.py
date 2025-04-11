@@ -241,17 +241,17 @@ class FertilizerInput(BaseModel):
 @app.get("/", response_class=HTMLResponse)
 async def get_index(request: Request):
     # Serve the index.html file from the static folder
-    return docs.TemplateResponse("index.html", {"request": request, "available_crops": available_crops})
+    return templates.TemplateResponse("index.html", {"request": request, "available_crops": available_crops})
 
 @app.get("/dashboard", response_class=HTMLResponse)
 async def get_dashboard(request: Request):
     # Serve the dashboard.html file
-    return docs.TemplateResponse("dashboard.html", {"request": request})
+    return templates.TemplateResponse("dashboard.html", {"request": request})
 
 @app.get("/disease-prediction", response_class=HTMLResponse)
 async def get_disease_prediction(request: Request):
     # Serve the disease_prediction.html file
-    return docs.TemplateResponse("disease_prediction.html", {"request": request})
+    return templates.TemplateResponse("disease_prediction.html", {"request": request})
 
 @app.get("/api/data", response_class=JSONResponse)
 async def get_sensor_data():
