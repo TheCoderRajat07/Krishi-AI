@@ -1,0 +1,194 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Crop Disease Prediction - KrishiAI</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0-alpha1/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="{{ url_for('static', path='css/style.css') }}">
+    <style>
+        .preview-image {
+            max-width: 300px;
+            max-height: 300px;
+            margin-top: 20px;
+            display: none;
+        }
+        .result-card {
+            display: none;
+            margin-top: 20px;
+        }
+        .treatment-list {
+            list-style-type: none;
+            padding-left: 0;
+        }
+        .treatment-list li {
+            margin-bottom: 10px;
+            padding: 10px;
+            background-color: #f8f9fa;
+            border-radius: 5px;
+        }
+        .treatment-list li:before {
+            content: "•";
+            color: #28a745;
+            font-weight: bold;
+            display: inline-block;
+            width: 1em;
+            margin-left: -1em;
+        }
+        .confidence-bar {
+            height: 20px;
+            background-color: #e9ecef;
+            border-radius: 10px;
+            overflow: hidden;
+            margin-top: 10px;
+        }
+        .confidence-fill {
+            height: 100%;
+            background-color: #28a745;
+            transition: width 0.5s ease-in-out;
+        }
+    </style>
+</head>
+<body>
+    <nav class="navbar navbar-expand-lg navbar-dark bg-success">
+        <div class="container">
+            <a class="navbar-brand" href="/">KrishiAI</a>
+            <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav">
+                <span class="navbar-toggler-icon"></span>
+            </button>
+            <div class="collapse navbar-collapse" id="navbarNav">
+                <ul class="navbar-nav">
+                    <li class="nav-item">
+                        <a class="nav-link" href="/">Home</a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link" href="/dashboard">Dashboard</a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link active" href="/disease-prediction">Disease Prediction</a>
+                    </li>
+                </ul>
+            </div>
+        </div>
+    </nav>
+
+    <div class="container mt-5">
+        <div class="row">
+            <div class="col-md-6">
+                <div class="card">
+                    <div class="card-header bg-success text-white">
+                        <h5 class="card-title mb-0">Upload Leaf Image</h5>
+                    </div>
+                    <div class="card-body">
+                        <form id="diseasePredictionForm">
+                            <div class="mb-3">
+                                <label for="leafImage" class="form-label">Leaf Image</label>
+                                <input type="file" class="form-control" id="leafImage" name="leafImage" accept="image/*" required>
+                                <img id="imagePreview" class="preview-image img-fluid rounded" alt="Preview">
+                            </div>
+                            <div class="mb-3">
+                                <label for="cropType" class="form-label">Crop Type</label>
+                                <select class="form-select" id="cropType" name="cropType" required>
+                                    <option value="">Select a crop type</option>
+                                    <option value="rice">Rice</option>
+                                    <option value="wheat">Wheat</option>
+                                    <option value="maize">Maize</option>
+                                    <option value="potato">Potato</option>
+                                    <option value="tomato">Tomato</option>
+                                </select>
+                            </div>
+                            <button type="submit" class="btn btn-success">Predict Disease</button>
+                        </form>
+                    </div>
+                </div>
+            </div>
+            <div class="col-md-6">
+                <div class="card result-card" id="resultCard">
+                    <div class="card-header bg-success text-white">
+                        <h5 class="card-title mb-0">Prediction Result</h5>
+                    </div>
+                    <div class="card-body">
+                        <h4 id="diseaseName" class="text-success"></h4>
+                        <div class="mb-3">
+                            <label>Confidence:</label>
+                            <div class="confidence-bar">
+                                <div class="confidence-fill" id="confidenceBar"></div>
+                            </div>
+                            <small id="confidenceValue" class="text-muted"></small>
+                        </div>
+                        <div class="mb-3">
+                            <h5>Description:</h5>
+                            <p id="diseaseDescription"></p>
+                        </div>
+                        <div class="mb-3">
+                            <h5>Recommended Treatments:</h5>
+                            <ul class="treatment-list" id="treatmentList"></ul>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0-alpha1/dist/js/bootstrap.bundle.min.js"></script>
+    <script>
+        // Preview image before upload
+        document.getElementById('leafImage').addEventListener('change', function(e) {
+            const file = e.target.files[0];
+            if (file) {
+                const reader = new FileReader();
+                reader.onload = function(e) {
+                    const preview = document.getElementById('imagePreview');
+                    preview.src = e.target.result;
+                    preview.style.display = 'block';
+                }
+                reader.readAsDataURL(file);
+            }
+        });
+
+        // Handle form submission
+        document.getElementById('diseasePredictionForm').addEventListener('submit', async function(e) {
+            e.preventDefault();
+            
+            const formData = new FormData();
+            formData.append('leafImage', document.getElementById('leafImage').files[0]);
+            formData.append('cropType', document.getElementById('cropType').value);
+            
+            try {
+                const response = await fetch('/api/disease-prediction', {
+                    method: 'POST',
+                    body: formData
+                });
+                
+                if (!response.ok) {
+                    throw new Error('Network response was not ok');
+                }
+                
+                const result = await response.json();
+                
+                // Update the result card
+                document.getElementById('diseaseName').textContent = result.disease;
+                document.getElementById('confidenceValue').textContent = `${(result.confidence * 100).toFixed(1)}%`;
+                document.getElementById('confidenceBar').style.width = `${result.confidence * 100}%`;
+                document.getElementById('diseaseDescription').textContent = result.description;
+                
+                // Update treatments list
+                const treatmentList = document.getElementById('treatmentList');
+                treatmentList.innerHTML = '';
+                result.treatments.forEach(treatment => {
+                    const li = document.createElement('li');
+                    li.textContent = treatment;
+                    treatmentList.appendChild(li);
+                });
+                
+                // Show the result card
+                document.getElementById('resultCard').style.display = 'block';
+                
+            } catch (error) {
+                console.error('Error:', error);
+                alert('An error occurred while processing the image. Please try again.');
+            }
+        });
+    </script>
+</body>
+</html> 

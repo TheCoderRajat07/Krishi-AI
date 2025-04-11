@@ -1,0 +1,401 @@
+{% extends "base.html" %}
+
+{% block title %}KrishiAI - ThingSpeak Dashboard{% endblock %}
+
+{% block content %}
+<div class="row">
+    <div class="col-12">
+        <div class="card shadow-sm mb-4">
+            <div class="card-header bg-primary text-white">
+                <h4 class="mb-0"><i class="bi bi-graph-up"></i> ThingSpeak Dashboard</h4>
+            </div>
+            <div class="card-body">
+                <div class="row">
+                    <div class="col-md-6 mb-4">
+                        <div class="card h-100 shadow-sm">
+                            <div class="card-header bg-light">
+                                <h5 class="mb-0">Temperature (°C)</h5>
+                            </div>
+                            <div class="card-body">
+                                <canvas id="temperatureChart" height="250"></canvas>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="col-md-6 mb-4">
+                        <div class="card h-100 shadow-sm">
+                            <div class="card-header bg-light">
+                                <h5 class="mb-0">Humidity (%)</h5>
+                            </div>
+                            <div class="card-body">
+                                <canvas id="humidityChart" height="250"></canvas>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="col-md-6 mb-4">
+                        <div class="card h-100 shadow-sm">
+                            <div class="card-header bg-light">
+                                <h5 class="mb-0">Soil Moisture (%)</h5>
+                            </div>
+                            <div class="card-body">
+                                <canvas id="moistureChart" height="250"></canvas>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="col-md-6 mb-4">
+                        <div class="card h-100 shadow-sm">
+                            <div class="card-header bg-light">
+                                <h5 class="mb-0">Rain Status</h5>
+                            </div>
+                            <div class="card-body">
+                                <canvas id="rainChart" height="250"></canvas>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="col-md-6 mb-4">
+                        <div class="card h-100 shadow-sm">
+                            <div class="card-header bg-light">
+                                <h5 class="mb-0">Water Pump Status</h5>
+                            </div>
+                            <div class="card-body">
+                                <canvas id="pumpChart" height="250"></canvas>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                <div class="row mt-4">
+                    <div class="col-12">
+                        <div class="card shadow-sm">
+                            <div class="card-header bg-light">
+                                <h5 class="mb-0">Latest Sensor Readings</h5>
+                            </div>
+                            <div class="card-body">
+                                <div class="table-responsive">
+                                    <table class="table table-striped table-hover">
+                                        <thead>
+                                            <tr>
+                                                <th>Timestamp</th>
+                                                <th>Temperature (°C)</th>
+                                                <th>Humidity (%)</th>
+                                                <th>Soil Moisture (%)</th>
+                                                <th>Rain Status</th>
+                                                <th>Water Pump</th>
+                                            </tr>
+                                        </thead>
+                                        <tbody id="sensorDataTable">
+                                            <!-- Data will be populated by JavaScript -->
+                                        </tbody>
+                                    </table>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+<script>
+    document.addEventListener('DOMContentLoaded', function() {
+        // Chart configurations
+        const chartConfig = {
+            type: 'line',
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                scales: {
+                    x: {
+                        type: 'time',
+                        time: {
+                            unit: 'minute',
+                            displayFormats: {
+                                minute: 'HH:mm'
+                            }
+                        },
+                        title: {
+                            display: true,
+                            text: 'Time'
+                        }
+                    },
+                    y: {
+                        beginAtZero: true,
+                        title: {
+                            display: true,
+                            text: 'Value'
+                        }
+                    }
+                },
+                plugins: {
+                    legend: {
+                        display: false
+                    }
+                }
+            }
+        };
+
+        // Binary chart config for rain and pump status
+        const binaryChartConfig = {
+            type: 'line',
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                scales: {
+                    x: {
+                        type: 'time',
+                        time: {
+                            unit: 'minute',
+                            displayFormats: {
+                                minute: 'HH:mm'
+                            }
+                        },
+                        title: {
+                            display: true,
+                            text: 'Time'
+                        }
+                    },
+                    y: {
+                        min: 0,
+                        max: 1,
+                        ticks: {
+                            stepSize: 1,
+                            callback: function(value) {
+                                return value === 0 ? 'Off' : 'On';
+                            }
+                        },
+                        title: {
+                            display: true,
+                            text: 'Status'
+                        }
+                    }
+                },
+                plugins: {
+                    legend: {
+                        display: false
+                    }
+                }
+            }
+        };
+
+        // Initialize charts
+        const temperatureChart = new Chart(
+            document.getElementById('temperatureChart'),
+            {
+                ...chartConfig,
+                data: {
+                    datasets: [{
+                        label: 'Temperature',
+                        data: [],
+                        borderColor: 'rgb(255, 99, 132)',
+                        tension: 0.1
+                    }]
+                }
+            }
+        );
+
+        const humidityChart = new Chart(
+            document.getElementById('humidityChart'),
+            {
+                ...chartConfig,
+                data: {
+                    datasets: [{
+                        label: 'Humidity',
+                        data: [],
+                        borderColor: 'rgb(54, 162, 235)',
+                        tension: 0.1
+                    }]
+                }
+            }
+        );
+
+        const moistureChart = new Chart(
+            document.getElementById('moistureChart'),
+            {
+                ...chartConfig,
+                data: {
+                    datasets: [{
+                        label: 'Soil Moisture',
+                        data: [],
+                        borderColor: 'rgb(75, 192, 192)',
+                        tension: 0.1
+                    }]
+                }
+            }
+        );
+
+        const rainChart = new Chart(
+            document.getElementById('rainChart'),
+            {
+                ...binaryChartConfig,
+                data: {
+                    datasets: [{
+                        label: 'Rain Status',
+                        data: [],
+                        borderColor: 'rgb(54, 162, 235)',
+                        tension: 0.1
+                    }]
+                }
+            }
+        );
+
+        const pumpChart = new Chart(
+            document.getElementById('pumpChart'),
+            {
+                ...binaryChartConfig,
+                data: {
+                    datasets: [{
+                        label: 'Water Pump',
+                        data: [],
+                        borderColor: 'rgb(255, 159, 64)',
+                        tension: 0.1
+                    }]
+                }
+            }
+        );
+
+        // Function to safely get field value
+        function getFieldValue(data, field) {
+            return data[field] !== undefined ? parseFloat(data[field]) : null;
+        }
+
+        // Function to get binary status (on/off)
+        function getBinaryStatus(data, field) {
+            const value = data[field];
+            if (value === undefined) return null;
+            
+            // Convert to binary (0 or 1)
+            if (typeof value === 'string') {
+                return value.toLowerCase() === 'on' ? 1 : 0;
+            }
+            return value > 0 ? 1 : 0;
+        }
+
+        // Function to update charts and table
+        function updateDashboard(data) {
+            try {
+                // Parse timestamp
+                const timestamp = new Date(data.created_at);
+                if (isNaN(timestamp.getTime())) {
+                    console.error('Invalid timestamp:', data.created_at);
+                    return;
+                }
+
+                // Update charts with null check
+                const temp = getFieldValue(data, 'field1');
+                const humidity = getFieldValue(data, 'field2');
+                const moisture = getFieldValue(data, 'field3');
+                const rainStatus = getBinaryStatus(data, 'field4');
+                const pumpStatus = getBinaryStatus(data, 'field5');
+
+                if (temp !== null) {
+                    temperatureChart.data.datasets[0].data.push({
+                        x: timestamp,
+                        y: temp
+                    });
+                    temperatureChart.update();
+                }
+
+                if (humidity !== null) {
+                    humidityChart.data.datasets[0].data.push({
+                        x: timestamp,
+                        y: humidity
+                    });
+                    humidityChart.update();
+                }
+
+                if (moisture !== null) {
+                    moistureChart.data.datasets[0].data.push({
+                        x: timestamp,
+                        y: moisture
+                    });
+                    moistureChart.update();
+                }
+
+                if (rainStatus !== null) {
+                    rainChart.data.datasets[0].data.push({
+                        x: timestamp,
+                        y: rainStatus
+                    });
+                    rainChart.update();
+                }
+
+                if (pumpStatus !== null) {
+                    pumpChart.data.datasets[0].data.push({
+                        x: timestamp,
+                        y: pumpStatus
+                    });
+                    pumpChart.update();
+                }
+
+                // Update table
+                const tableRow = document.createElement('tr');
+                tableRow.innerHTML = `
+                    <td>${timestamp.toLocaleString()}</td>
+                    <td>${temp !== null ? temp.toFixed(2) : 'N/A'}</td>
+                    <td>${humidity !== null ? humidity.toFixed(2) : 'N/A'}</td>
+                    <td>${moisture !== null ? moisture.toFixed(2) : 'N/A'}</td>
+                    <td>${rainStatus !== null ? (rainStatus === 1 ? 'On' : 'Off') : 'N/A'}</td>
+                    <td>${pumpStatus !== null ? (pumpStatus === 1 ? 'On' : 'Off') : 'N/A'}</td>
+                `;
+                
+                const tableBody = document.getElementById('sensorDataTable');
+                tableBody.insertBefore(tableRow, tableBody.firstChild);
+                
+                // Keep only the last 10 rows
+                while (tableBody.children.length > 10) {
+                    tableBody.removeChild(tableBody.lastChild);
+                }
+            } catch (error) {
+                console.error('Error updating dashboard:', error);
+            }
+        }
+
+        // Clear existing data
+        function clearCharts() {
+            temperatureChart.data.datasets[0].data = [];
+            humidityChart.data.datasets[0].data = [];
+            moistureChart.data.datasets[0].data = [];
+            rainChart.data.datasets[0].data = [];
+            pumpChart.data.datasets[0].data = [];
+            
+            temperatureChart.update();
+            humidityChart.update();
+            moistureChart.update();
+            rainChart.update();
+            pumpChart.update();
+            
+            document.getElementById('sensorDataTable').innerHTML = '';
+        }
+
+        // Fetch data from ThingSpeak
+        function fetchThingSpeakData() {
+            fetch('/api/data')
+                .then(response => {
+                    if (!response.ok) {
+                        throw new Error('Network response was not ok');
+                    }
+                    return response.json();
+                })
+                .then(data => {
+                    if (data && data.feeds && data.feeds.length > 0) {
+                        clearCharts();  // Clear existing data
+                        data.feeds.forEach(updateDashboard);
+                    } else {
+                        console.warn('No ThingSpeak data available');
+                    }
+                })
+                .catch(error => {
+                    console.error('Error fetching ThingSpeak data:', error);
+                });
+        }
+
+        // Initial data fetch
+        fetchThingSpeakData();
+
+        // Fetch new data every 15 seconds
+        setInterval(fetchThingSpeakData, 15000);
+    });
+</script>
+{% endblock %} 

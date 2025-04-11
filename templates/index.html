@@ -1,0 +1,379 @@
+{% extends "base.html" %}
+
+{% block title %}KrishiAI - ML Predictions{% endblock %}
+
+{% block content %}
+<div class="row">
+    <div class="col-12">
+        <div class="card shadow-sm mb-4">
+            <div class="card-header bg-success text-white">
+                <h4 class="mb-0"><i class="bi bi-robot"></i> ML Predictions & Recommendations</h4>
+            </div>
+            <div class="card-body">
+                <ul class="nav nav-tabs" id="predictionTabs" role="tablist">
+                    <li class="nav-item" role="presentation">
+                        <button class="nav-link active" id="crop-tab" data-bs-toggle="tab" data-bs-target="#crop" type="button" role="tab">Crop Recommendation</button>
+                    </li>
+                    <li class="nav-item" role="presentation">
+                        <button class="nav-link" id="fertilizer-tab" data-bs-toggle="tab" data-bs-target="#fertilizer" type="button" role="tab">Fertilizer Recommendation</button>
+                    </li>
+                    <li class="nav-item" role="presentation">
+                        <button class="nav-link" id="price-tab" data-bs-toggle="tab" data-bs-target="#price" type="button" role="tab">Crop Price Prediction</button>
+                    </li>
+                    <li class="nav-item" role="presentation">
+                        <button class="nav-link" id="disease-tab" data-bs-toggle="tab" data-bs-target="#disease" type="button" role="tab">Crop Disease Prediction</button>
+                    </li>
+                </ul>
+                <div class="tab-content p-3" id="predictionTabsContent">
+                    <!-- Crop Recommendation Tab -->
+                    <div class="tab-pane fade show active" id="crop" role="tabpanel">
+                        <h5 class="card-title">Crop Recommendation</h5>
+                        <p class="card-text">Enter soil parameters to get crop recommendations.</p>
+                        <form id="cropForm" class="row g-3">
+                            <div class="col-md-6">
+                                <label for="nitrogen" class="form-label">Nitrogen (N)</label>
+                                <input type="number" class="form-control" id="nitrogen" name="nitrogen" required>
+                            </div>
+                            <div class="col-md-6">
+                                <label for="phosphorus" class="form-label">Phosphorus (P)</label>
+                                <input type="number" class="form-control" id="phosphorus" name="phosphorus" required>
+                            </div>
+                            <div class="col-md-6">
+                                <label for="potassium" class="form-label">Potassium (K)</label>
+                                <input type="number" class="form-control" id="potassium" name="potassium" required>
+                            </div>
+                            <div class="col-md-6">
+                                <label for="temperature" class="form-label">Temperature (°C)</label>
+                                <input type="number" class="form-control" id="temperature" name="temperature" required>
+                            </div>
+                            <div class="col-md-6">
+                                <label for="humidity" class="form-label">Humidity (%)</label>
+                                <input type="number" class="form-control" id="humidity" name="humidity" required>
+                            </div>
+                            <div class="col-md-6">
+                                <label for="ph" class="form-label">pH</label>
+                                <input type="number" class="form-control" id="ph" name="ph" step="0.1" required>
+                            </div>
+                            <div class="col-md-6">
+                                <label for="rainfall" class="form-label">Rainfall (mm)</label>
+                                <input type="number" class="form-control" id="rainfall" name="rainfall" required>
+                            </div>
+                            <div class="col-12">
+                                <button type="submit" class="btn btn-success">Get Recommendation</button>
+                            </div>
+                        </form>
+                        <div id="cropResult" class="mt-3 d-none">
+                            <div class="alert alert-success">
+                                <h5>Recommended Crop: <span id="recommendedCrop"></span></h5>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Fertilizer Recommendation Tab -->
+                    <div class="tab-pane fade" id="fertilizer" role="tabpanel">
+                        <h5 class="card-title">Fertilizer Recommendation</h5>
+                        <p class="card-text">Enter soil parameters and crop to get fertilizer recommendations.</p>
+                        <form id="fertilizerForm" class="row g-3">
+                            <div class="col-md-4">
+                                <label for="fertilizerNitrogen" class="form-label">Nitrogen (N)</label>
+                                <input type="number" class="form-control" id="fertilizerNitrogen" name="nitrogen" required>
+                            </div>
+                            <div class="col-md-4">
+                                <label for="fertilizerPhosphorus" class="form-label">Phosphorus (P)</label>
+                                <input type="number" class="form-control" id="fertilizerPhosphorus" name="phosphorus" required>
+                            </div>
+                            <div class="col-md-4">
+                                <label for="fertilizerPotassium" class="form-label">Potassium (K)</label>
+                                <input type="number" class="form-control" id="fertilizerPotassium" name="potassium" required>
+                            </div>
+                            <div class="col-md-4">
+                                <label for="fertilizerTemperature" class="form-label">Temperature (°C)</label>
+                                <input type="number" class="form-control" id="fertilizerTemperature" name="temperature" value="25" required>
+                            </div>
+                            <div class="col-md-4">
+                                <label for="fertilizerHumidity" class="form-label">Humidity (%)</label>
+                                <input type="number" class="form-control" id="fertilizerHumidity" name="humidity" value="65" required>
+                            </div>
+                            <div class="col-md-4">
+                                <label for="soilType" class="form-label">Soil Type</label>
+                                <select class="form-select" id="soilType" name="soil_type" required>
+                                    <option value="">Select soil type</option>
+                                    <option value="Black">Black</option>
+                                    <option value="Clayey">Clayey</option>
+                                    <option value="Loamy">Loamy</option>
+                                    <option value="Red">Red</option>
+                                    <option value="Sandy">Sandy</option>
+                                </select>
+                            </div>
+                            <div class="col-md-6">
+                                <label for="cropType" class="form-label">Crop Type</label>
+                                <select class="form-select" id="cropType" name="crop_type" required>
+                                    <option value="">Select a crop</option>
+                                    <option value="Barley">Barley</option>
+                                    <option value="Cotton">Cotton</option>
+                                    <option value="Ground Nuts">Ground Nuts</option>
+                                    <option value="Maize">Maize</option>
+                                    <option value="Millets">Millets</option>
+                                    <option value="Oil seeds">Oil seeds</option>
+                                    <option value="Paddy">Paddy</option>
+                                    <option value="Pulses">Pulses</option>
+                                    <option value="Sugarcane">Sugarcane</option>
+                                    <option value="Tobacco">Tobacco</option>
+                                    <option value="Wheat">Wheat</option>
+                                    <option value="coffee">Coffee</option>
+                                    <option value="kidneybeans">Kidney Beans</option>
+                                    <option value="orange">Orange</option>
+                                    <option value="pomegranate">Pomegranate</option>
+                                    <option value="rice">Rice</option>
+                                    <option value="watermelon">Watermelon</option>
+                                </select>
+                            </div>
+                            <div class="col-12">
+                                <button type="submit" class="btn btn-primary">Get Recommendation</button>
+                            </div>
+                        </form>
+                        <div id="fertilizerResult" class="mt-4 d-none">
+                            <div class="alert alert-success">
+                                <h5>Recommended Fertilizer: <span id="recommendedFertilizer"></span></h5>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Crop Price Prediction Tab -->
+                    <div class="tab-pane fade" id="price" role="tabpanel">
+                        <h5 class="card-title">Crop Price Prediction</h5>
+                        <p class="card-text">Enter crop details to predict future prices.</p>
+                        <form id="priceForm" class="row g-3">
+                            <div class="col-md-4">
+                                <label for="priceCrop" class="form-label">Crop</label>
+                                <select class="form-select" id="priceCrop" name="crop" required>
+                                    <option value="">Select a crop</option>
+                                    {% for crop in available_crops %}
+                                    <option value="{{ crop }}">{{ crop }}</option>
+                                    {% endfor %}
+                                </select>
+                            </div>
+                            <div class="col-md-4">
+                                <label for="month" class="form-label">Month</label>
+                                <select class="form-select" id="month" name="month" required>
+                                    <option value="">Select a month</option>
+                                    <option value="1">January</option>
+                                    <option value="2">February</option>
+                                    <option value="3">March</option>
+                                    <option value="4">April</option>
+                                    <option value="5">May</option>
+                                    <option value="6">June</option>
+                                    <option value="7">July</option>
+                                    <option value="8">August</option>
+                                    <option value="9">September</option>
+                                    <option value="10">October</option>
+                                    <option value="11">November</option>
+                                    <option value="12">December</option>
+                                </select>
+                            </div>
+                            <div class="col-md-4">
+                                <label for="year" class="form-label">Year</label>
+                                <input type="number" class="form-control" id="year" name="year" min="2023" max="2030" value="2023" required>
+                            </div>
+                            <div class="col-12">
+                                <button type="submit" class="btn btn-success">Predict Price</button>
+                            </div>
+                        </form>
+                        <div id="priceResult" class="mt-3 d-none">
+                            <div class="alert alert-success">
+                                <h5>Predicted Price: ₹<span id="predictedPrice"></span></h5>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Crop Disease Prediction Tab -->
+                    <div class="tab-pane fade" id="disease" role="tabpanel">
+                        <h5 class="card-title">Crop Disease Prediction</h5>
+                        <p class="card-text">Upload a leaf image to predict crop diseases.</p>
+                        <form id="diseaseForm" class="row g-3">
+                            <div class="col-md-6">
+                                <label for="diseaseCropType" class="form-label">Crop Type</label>
+                                <select class="form-select" id="diseaseCropType" name="cropType" required>
+                                    <option value="">Select a crop</option>
+                                    <option value="rice">Rice</option>
+                                    <option value="wheat">Wheat</option>
+                                    <option value="maize">Maize</option>
+                                    <option value="potato">Potato</option>
+                                    <option value="tomato">Tomato</option>
+                                </select>
+                            </div>
+                            <div class="col-md-6">
+                                <label for="leafImage" class="form-label">Leaf Image</label>
+                                <input type="file" class="form-control" id="leafImage" name="leafImage" accept="image/*" required>
+                            </div>
+                            <div class="col-12">
+                                <button type="submit" class="btn btn-success">Predict Disease</button>
+                            </div>
+                        </form>
+                        <div id="diseaseResult" class="mt-4 d-none">
+                            <div class="alert alert-info">
+                                <h5>Predicted Disease: <span id="predictedDisease"></span></h5>
+                                <p>Confidence: <span id="diseaseConfidence"></span></p>
+                                <hr>
+                                <h6>Description:</h6>
+                                <p id="diseaseDescription"></p>
+                                <h6>Recommended Treatments:</h6>
+                                <ul id="diseaseTreatments"></ul>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+    document.addEventListener('DOMContentLoaded', function() {
+        // Crop Recommendation Form
+        const cropForm = document.getElementById('cropForm');
+        cropForm.addEventListener('submit', function(e) {
+            e.preventDefault();
+            const formData = new FormData(cropForm);
+            
+            fetch('/api/crop-recommendation', {
+                method: 'POST',
+                body: formData
+            })
+            .then(response => {
+                if (!response.ok) {
+                    throw new Error('Network response was not ok');
+                }
+                return response.json();
+            })
+            .then(data => {
+                document.getElementById('recommendedCrop').textContent = data.recommended_crop;
+                document.getElementById('cropResult').classList.remove('d-none');
+            })
+            .catch(error => {
+                console.error('Error:', error);
+                alert('An error occurred while getting the recommendation.');
+            });
+        });
+
+        // Fertilizer Recommendation Form
+        const fertilizerForm = document.getElementById('fertilizerForm');
+        fertilizerForm.addEventListener('submit', function(e) {
+            e.preventDefault();
+            
+            // Create a JSON object from the form data
+            const formData = {
+                temperature: parseFloat(document.getElementById('fertilizerTemperature').value),
+                humidity: parseFloat(document.getElementById('fertilizerHumidity').value),
+                nitrogen: parseFloat(document.getElementById('fertilizerNitrogen').value),
+                phosphorous: parseFloat(document.getElementById('fertilizerPhosphorus').value),
+                potassium: parseFloat(document.getElementById('fertilizerPotassium').value),
+                soil_type: document.getElementById('soilType').value,
+                crop_type: document.getElementById('cropType').value
+            };
+            
+            fetch('/api/fertilizer-recommendation', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify(formData)
+            })
+            .then(response => {
+                if (!response.ok) {
+                    return response.json().then(err => {
+                        throw new Error(err.detail || 'An error occurred');
+                    });
+                }
+                return response.json();
+            })
+            .then(data => {
+                document.getElementById('recommendedFertilizer').textContent = data.recommended_fertilizer;
+                document.getElementById('fertilizerResult').classList.remove('d-none');
+            })
+            .catch(error => {
+                console.error('Error:', error);
+                alert(error.message || 'An error occurred while getting the fertilizer recommendation.');
+            });
+        });
+
+        // Crop Price Prediction Form
+        const priceForm = document.getElementById('priceForm');
+        priceForm.addEventListener('submit', function(e) {
+            e.preventDefault();
+            const formData = new FormData(priceForm);
+            
+            fetch('/api/crop-price-prediction', {
+                method: 'POST',
+                body: formData
+            })
+            .then(response => {
+                if (!response.ok) {
+                    throw new Error('Network response was not ok');
+                }
+                return response.json();
+            })
+            .then(data => {
+                document.getElementById('predictedPrice').textContent = data.predicted_price.toFixed(2);
+                document.getElementById('priceResult').classList.remove('d-none');
+            })
+            .catch(error => {
+                console.error('Error:', error);
+                alert('An error occurred while predicting the price.');
+            });
+        });
+
+        // Disease Prediction Form
+        const diseaseForm = document.getElementById('diseaseForm');
+        diseaseForm.addEventListener('submit', function(e) {
+            e.preventDefault();
+            
+            const formData = new FormData();
+            const leafImage = document.getElementById('leafImage').files[0];
+            const cropType = document.getElementById('diseaseCropType').value;
+            
+            formData.append('leafImage', leafImage);
+            formData.append('cropType', cropType);
+            
+            fetch('/api/disease-prediction', {
+                method: 'POST',
+                body: formData
+            })
+            .then(response => {
+                if (!response.ok) {
+                    return response.json().then(err => {
+                        throw new Error(err.detail || 'An error occurred');
+                    });
+                }
+                return response.json();
+            })
+            .then(data => {
+                // Update the result elements
+                document.getElementById('predictedDisease').textContent = data.disease;
+                document.getElementById('diseaseConfidence').textContent = (data.confidence * 100).toFixed(2) + '%';
+                document.getElementById('diseaseDescription').textContent = data.description;
+                
+                // Clear previous treatments
+                const treatmentsList = document.getElementById('diseaseTreatments');
+                treatmentsList.innerHTML = '';
+                
+                // Add each treatment as a list item
+                data.treatments.forEach(treatment => {
+                    const li = document.createElement('li');
+                    li.textContent = treatment;
+                    treatmentsList.appendChild(li);
+                });
+                
+                // Show the result
+                document.getElementById('diseaseResult').classList.remove('d-none');
+            })
+            .catch(error => {
+                console.error('Error:', error);
+                alert(error.message || 'An error occurred while predicting the disease.');
+            });
+        });
+    });
+</script>
+{% endblock %} 
